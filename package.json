@@ -2,27 +2,31 @@
   "name": "e-val",
   "private": true,
   "version": "0.0.0",
-  "type": "module",
-  "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview"
+  "packageManager": "pnpm@10.17.0",
+  "engines": {
+    "node": ">=20"
   },
-  "dependencies": {
-    "axios": "^1.7.2",
-    "flowbite": "^2.4.1",
-    "pinia": "^2.2.0",
-    "pinia-plugin-persistedstate": "^3.2.1",
-    "vue": "^3.2.47",
-    "vue-router": "^4.4.0",
-    "vue-toastification": "^2.0.0-rc.5"
+  "scripts": {
+    "dev": "turbo run dev",
+    "dev:web": "turbo run dev --filter=@e-val/web",
+    "dev:api": "turbo run dev --filter=@e-val/api",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "test": "turbo run test",
+    "db:migrate": "pnpm --filter @e-val/api db:migrate",
+    "db:seed": "pnpm --filter @e-val/api db:seed",
+    "db:reset": "pnpm --filter @e-val/api db:reset"
   },
   "devDependencies": {
-    "@vitejs/plugin-vue": "^4.1.0",
-    "autoprefixer": "^10.4.19",
-    "postcss": "^8.4.39",
-    "tailwind-scrollbar": "^3.1.0",
-    "tailwindcss": "^3.4.6",
-    "vite": "^4.2.0"
+    "turbo": "^2.1.0"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild",
+      "prisma",
+      "@prisma/client",
+      "@prisma/engines",
+      "bcrypt"
+    ]
   }
 }

@@ -1,31 +1,77 @@
-# E-Val Project
+# E-Val — Course Evaluation Platform
 
-Course Evaluation System
+A single-institution course evaluation app. Students complete per-course Likert
+evaluations during an open window; admins approve registrations, monitor
+participation, and export reports.
 
-## Project Setup
+Monorepo managed with **pnpm workspaces** + **Turborepo**.
 
-### Install Vue Toastification
-
-Vue Toastification is a powerful toast notification library for Vue.js applications. To install it, run:
-
-```sh
-npm install --save vue-toastification@next
+```
+apps/
+  web/        Vue 3 SPA (Vite, Pinia, Tailwind)
+  api/        NestJS REST API (Prisma, JWT auth)
+packages/
+  shared/     Zod schemas + TS types shared by web and api
+docs/
+  api-contract.md   Endpoint reference
 ```
 
-### Install Flowbite
+## Prerequisites
 
-To install it, run:
+- Node >= 20
+- pnpm 10 (`corepack enable`)
 
-```sh
-npm install flowbite
+No database server needed for local dev — the API uses **SQLite**. For
+production, switch the Prisma datasource to PostgreSQL (see
+`apps/api/prisma/schema.prisma`).
+
+## Setup
+
+```bash
+pnpm install                 # install all workspaces
+cp apps/api/.env.example apps/api/.env
+cp apps/web/.env.example apps/web/.env
+pnpm --filter @e-val/shared build
+pnpm --filter @e-val/api db:migrate   # creates SQLite db + runs migration
+pnpm --filter @e-val/api db:seed      # seeds demo data
 ```
 
-### Install tailwind-scrollbar
+## Run
 
-To install it, run:
-
-```sh
-npm install --save-dev tailwind-scrollbar
+```bash
+pnpm dev          # web + api together (turbo)
+pnpm dev:api      # api only  → http://localhost:3000
+pnpm dev:web      # web only  → http://localhost:5173
 ```
 
-## Change user role in `AuthenticatedLayout.vue` to access different sidebars
+Seeded logins (password `password`):
+
+| Role    | Email              |
+|---------|--------------------|
+| Admin   | admin@eval.local   |
+| Student | omar@eval.local    |
+
+## Scripts
+
+| Command          | Action                                  |
+|------------------|-----------------------------------------|
+| `pnpm build`     | Build all packages (shared → api/web)   |
+| `pnpm lint`      | Typecheck all packages                  |
+| `pnpm test`      | Run tests                               |
+| `pnpm db:migrate`| Run Prisma migrations (api)             |
+| `pnpm db:seed`   | Seed the database (api)                 |
+| `pnpm db:reset`  | Drop, migrate, and reseed (api)         |
+
+## Frontend mock mode
+
+The web app can serve API responses from `src/mocks` without a running backend.
+Toggle with `VITE_USE_MOCKS=true` in `apps/web/.env`, or at runtime in the
+browser: `localStorage.setItem('useMocks', 'true')`.
+
+## Moving to PostgreSQL
+
+1. In `apps/api/prisma/schema.prisma`, set `provider = "postgresql"` and
+   re-add a `Role` enum (replacing the `role String` fields).
+2. Change `Question.options` back to `Json`.
+3. Point `DATABASE_URL` at your Postgres instance.
+4. `pnpm --filter @e-val/api db:migrate`.
