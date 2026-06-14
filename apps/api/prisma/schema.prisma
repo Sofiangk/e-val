@@ -1,0 +1,133 @@
+// Local dev uses SQLite for zero-setup. For production, change provider to
+// "postgresql" and re-introduce a `Role` enum (SQLite doesn't support enums).
+// All app code reads/writes `role` as the string 'student' | 'admin', so the
+// switch is provider-only.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            Int       @id @default(autoincrement())
+  email         String    @unique
+  name          String?
+  studentId     String?   @unique @map("student_id")
+  passwordHash  String    @map("password_hash")
+  role          String // 'student' | 'admin'
+  departmentId  Int?      @map("department_id")
+  semester      Int?
+  isApproved    Boolean   @default(false) @map("is_approved")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  department    Department?    @relation(fields: [departmentId], references: [id])
+  enrollments   Enrollment[]
+  evaluations   Evaluation[]
+  refreshTokens RefreshToken[]
+
+  @@map("users")
+}
+
+model Department {
+  id      Int      @id @default(autoincrement())
+  name    String
+  users   User[]
+  courses Course[]
+
+  @@map("departments")
+}
+
+model Course {
+  id            Int    @id @default(autoincrement())
+  departmentId  Int    @map("department_id")
+  name          String
+  instructor    String
+  courseCode    String @unique @map("course_code")
+  courseCredits Int    @map("course_credits")
+
+  department  Department   @relation(fields: [departmentId], references: [id])
+  enrollments Enrollment[]
+  evaluations Evaluation[]
+
+  @@map("courses")
+}
+
+model Enrollment {
+  userId      Int      @map("user_id")
+  courseId    Int      @map("course_id")
+  isEvaluated Boolean  @default(false) @map("is_evaluated")
+  enrolledAt  DateTime @default(now()) @map("enrolled_at")
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@id([userId, courseId])
+  @@map("enrollments")
+}
+
+model EvaluationPeriod {
+  id        Int      @id @default(autoincrement())
+  name      String
+  startsAt  DateTime @map("starts_at")
+  endsAt    DateTime @map("ends_at")
+  message   String?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("evaluation_periods")
+}
+
+model QuestionSection {
+  id        Int        @id @default(autoincrement())
+  title     String
+  position  Int        @default(0)
+  questions Question[]
+
+  @@map("question_sections")
+}
+
+model Question {
+  id                Int    @id @default(autoincrement())
+  questionSectionId Int    @map("question_section_id")
+  text              String
+  // JSON-encoded [{ text: string, value: 1..5 }]. Stored as String for SQLite
+  // portability; switch to native `Json` when moving to Postgres.
+  options           String
+
+  section     QuestionSection @relation(fields: [questionSectionId], references: [id], onDelete: Cascade)
+  evaluations Evaluation[]
+
+  @@map("questions")
+}
+
+model Evaluation {
+  id            Int      @id @default(autoincrement())
+  courseId      Int      @map("course_id")
+  userId        Int      @map("user_id")
+  questionId    Int      @map("question_id")
+  selectedValue Int      @map("selected_value") // 1..5; unanswered = no row
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  course   Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  question Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@unique([courseId, userId, questionId])
+  @@map("evaluations")
+}
+
+model RefreshToken {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @map("user_id")
+  token     String   @unique
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("refresh_tokens")
+}
