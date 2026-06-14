@@ -55,21 +55,20 @@
 
 <script setup>
 import { ref } from 'vue';
-import axios from 'axios';
 import { useToast } from 'vue-toastification';
+import { apiClient } from '../../api/client';
 
 const email = ref('');
 const toast = useToast();
 
+// NOTE: password reset is not yet implemented on the NestJS backend.
 const sendResetEmail = async () => {
   try {
-    await axios.post('http://127.0.0.1:8000/api/student/forgot-password/', {
-      email: email.value,
-    });
+    await apiClient.post('/auth/forgot-password', { email: email.value });
     toast.success('Reset email sent successfully!');
   } catch (error) {
     console.error(error);
-    toast.error('Failed to send reset email.');
+    toast.error('Password reset is not available yet.');
   }
 };
 </script>

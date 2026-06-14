@@ -39,7 +39,7 @@
       v-if="showModal"
       @close="showModal = false"
       :title="'Enrolled Courses'"
-      :objects="courses"
+      :objects="selectedStudent?.registered_courses ?? []"
     >
     </Modal>
   </div>
@@ -51,8 +51,7 @@ import FiltersComponent from '../../components/Admin/FiltersComponent.vue';
 import ClickableTable from '../../components/Admin/ClickableTable.vue';
 import ObjectDetails from '../../components/Admin/ObjectDetails.vue';
 import Modal from '../../components/Admin/Modal.vue';
-import axios from 'axios';
-import { useAuthStore } from '../../stores/AuthStore';
+import { adminApi } from '../../api/admin';
 
 // Reactive variable for selected department and search query
 const selectedDepartment = ref('');
@@ -93,18 +92,9 @@ const studentStatsCards = computed(() => [
 ]);
 
 async function getStudents() {
-  const authStore = useAuthStore();
-  const apiUrl = import.meta.env.VITE_APP_API_URL;
   try {
-    const response = await axios.get(apiUrl + 'students', {
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: 'Bearer ' + authStore.admin.token,
-      },
-    });
-    students.value = response.data.data.filter(
-      (student) => student.is_approved === 1
-    );
+    const res = await adminApi.students({ approved: true, per_page: 100 });
+    students.value = res.data;
   } catch (error) {
     console.error(error);
   }

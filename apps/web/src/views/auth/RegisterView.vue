@@ -25,7 +25,7 @@
               >Email</label
             >
             <input
-              v-model="authStore.user.email"
+              v-model="email"
               id="email"
               type="email"
               placeholder="yourname_id@limu.edu.ly"
@@ -40,7 +40,7 @@
               >Student ID</label
             >
             <input
-              v-model="authStore.user.student_id"
+              v-model="studentId"
               type="number"
               id="studentId"
               placeholder="1234"
@@ -59,7 +59,7 @@
             >Name</label
           >
           <input
-            v-model="authStore.user.name"
+            v-model="name"
             type="text"
             id="student-name"
             placeholder="Your Name"
@@ -72,7 +72,7 @@
             >Password</label
           >
           <input
-            v-model="authStore.user.password"
+            v-model="password"
             type="password"
             id="password"
             placeholder="••••••••"
@@ -104,17 +104,13 @@
 </template>
 
 <script setup>
-import { onMounted, ref } from 'vue';
-import axios from 'axios';
-import { useRouter } from 'vue-router';
-import { useToast } from 'vue-toastification';
+import { ref } from 'vue';
 import { useAuthStore } from '../../stores/AuthStore';
 
 const email = ref('');
 const studentId = ref('');
+const name = ref('');
 const password = ref('');
-const router = useRouter();
-const toast = useToast();
 const authStore = useAuthStore();
 
 const validateStudentId = (event) => {
@@ -126,11 +122,13 @@ const validateStudentId = (event) => {
 };
 
 const signup = async () => {
-  await authStore.register();
+  await authStore.register({
+    name: name.value,
+    email: email.value,
+    student_id: String(studentId.value),
+    password: password.value,
+  });
 };
-onMounted(() => {
-  authStore.clearData();
-});
 </script>
 
 <style>

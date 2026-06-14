@@ -1,27 +1,19 @@
-// stores/EvalStore.js
 import { defineStore } from 'pinia';
-import axios from 'axios';
 import { useToast } from 'vue-toastification';
-import { useAuthStore } from './AuthStore';
+import { authApi } from '../api/auth';
+import { studentApi } from '../api/student';
 
 export const useEvalStore = defineStore('eval', {
   state: () => ({
     isEvaluated: false,
-    evaluation: [], // This will store the sections and questions data
-    selectedValues: {}, // This will store selected values for questions
+    evaluation: [], // sections + questions
+    selectedValues: {}, // questionId -> selected value
   }),
 
   actions: {
     async fetchSections() {
-      const apiUrl = import.meta.env.VITE_APP_API_URL;
-      const authStore = useAuthStore();
       try {
-        const response = await axios.get(apiUrl + 'question-sections', {
-          headers: {
-            Authorization: `Bearer ${authStore.user.token}`,
-          },
-        });
-        this.evaluation = response.data;
+        this.evaluation = await authApi.questionSections();
         this.initializeSelectedValues();
       } catch (error) {
         console.error('Error fetching sections:', error);
@@ -42,32 +34,28 @@ export const useEvalStore = defineStore('eval', {
     },
 
     async submitEvaluation(courseId) {
-      const apiUrl = import.meta.env.VITE_APP_API_URL;
-      const authStore = useAuthStore();
       const toast = useToast();
-      const formData = new FormData();
-
-      formData.append('course_id', courseId);
-      Object.keys(this.selectedValues).forEach((questionId, index) => {
-        formData.append(`responses[${index}][question_id]`, questionId);
-        formData.append(
-          `responses[${index}][selected_value]`,
-          this.selectedValues[questionId]
-        );
-      });
+      const responses = Object.entries(this.selectedValues)
+        .filter(([, value]) => value !== '' && value !== null && value !== undefined)
+        .map(([questionId, value]) => ({
+          question_id: Number(questionId),
+          selected_value: Number(value),
+        }));
 
       try {
-        await axios.post(apiUrl + 'student/evaluate-course', formData, {
-          headers: {
-            'Content-Type': 'multipart/form-data',
-            Authorization: `Bearer ${authStore.user.token}`,
-          },
+        await studentApi.evaluateCourse({
+          course_id: Number(courseId),
+          responses,
         });
         toast.success('Evaluation submitted successfully!');
         this.isEvaluated = true;
+        return true;
       } catch (error) {
         console.error('Error submitting evaluation:', error);
-        toast.error('There was an error submitting your evaluation.');
+        toast.error(
+          error.response?.data?.message || 'There was an error submitting your evaluation.',
+        );
+        return false;
       }
     },
   },

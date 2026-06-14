@@ -124,11 +124,9 @@
 
 <script setup>
 import { ref, watch, onMounted, defineProps, defineEmits } from 'vue';
-import axios from 'axios';
 import Modal from './Modal.vue';
-import { useAuthStore } from '../../stores/AuthStore';
+import { adminApi } from '../../api/admin';
 
-const authStore = useAuthStore();
 const emit = defineEmits(['update:department', 'update:search']);
 const title = ref('Courses');
 const departments = ref([]);
@@ -149,12 +147,7 @@ const props = defineProps({
 
 const fetchDepartments = async () => {
   try {
-    const response = await axios.get('http://127.0.0.1:8000/api/departments', {
-      headers: {
-        Authorization: `Bearer ${authStore.admin.token}`,
-      },
-    });
-    departments.value = response.data;
+    departments.value = await adminApi.departments();
   } catch (error) {
     console.error('Error fetching departments:', error);
   }

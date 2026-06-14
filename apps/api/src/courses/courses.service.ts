@@ -6,13 +6,21 @@ export class CoursesService {
   constructor(private readonly prisma: PrismaService) {}
 
   async listCourses() {
-    const courses = await this.prisma.course.findMany({
-      include: {
-        department: true,
-        _count: { select: { enrollments: true } },
-      },
-      orderBy: { courseCode: 'asc' },
-    });
+    const [courses, evaluatedGroups] = await Promise.all([
+      this.prisma.course.findMany({
+        include: {
+          department: true,
+          _count: { select: { enrollments: true } },
+        },
+        orderBy: { courseCode: 'asc' },
+      }),
+      this.prisma.enrollment.groupBy({
+        by: ['courseId'],
+        where: { isEvaluated: true },
+        _count: true,
+      }),
+    ]);
+    const evaluatedByCourse = new Map(evaluatedGroups.map((g) => [g.courseId, g._count]));
     return courses.map((c) => ({
       id: c.id,
       name: c.name,
@@ -22,6 +30,7 @@ export class CoursesService {
       department_id: c.departmentId,
       department_name: c.department.name,
       enrolled_students: c._count.enrollments,
+      evaluated_students: evaluatedByCourse.get(c.id) ?? 0,
     }));
   }
 

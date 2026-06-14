@@ -100,9 +100,11 @@ const props = defineProps({
 const evalStore = useEvalStore();
 const selectedValues = ref(evalStore.selectedValues);
 
-const parsedOptions = (optionsString) => {
+const parsedOptions = (options) => {
+  // The API returns options as a parsed array; tolerate a JSON string too.
+  if (Array.isArray(options)) return options;
   try {
-    return JSON.parse(optionsString);
+    return JSON.parse(options);
   } catch (error) {
     console.error('Error parsing options:', error);
     return [];

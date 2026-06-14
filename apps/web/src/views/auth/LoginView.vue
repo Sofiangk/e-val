@@ -87,65 +87,16 @@
 </template>
 
 <script setup>
-import { onMounted, ref } from 'vue';
-import { useRouter } from 'vue-router';
-import axios from 'axios';
-import { useToast } from 'vue-toastification';
+import { ref } from 'vue';
 import { useAuthStore } from '../../stores/AuthStore';
 
 const email = ref('');
 const password = ref('');
-const router = useRouter();
-const toast = useToast();
+const authStore = useAuthStore();
 
-async function login() {
-  const apiUrl = import.meta.env.VITE_APP_API_URL;
-  try {
-    const response = await axios.post(apiUrl + 'login', {
-      email: email.value,
-      password: password.value,
-    });
-
-    const data = response.data;
-    console.log('Login Response Data:', data);
-
-    const authStore = useAuthStore();
-
-    if (data.role === 'admin') {
-      authStore.admin.email = data.admin.email;
-      authStore.admin.token = data.token;
-      authStore.role = data.admin.role;
-      router.push('/admin/dashboard');
-      toast.success('Welcome Admin');
-    } else {
-      authStore.user.email = data.student.email;
-      authStore.user.token = data.token;
-      authStore.role = data.role;
-      authStore.user.student_id = data.student.student_id;
-      authStore.user.name = data.student.name;
-      authStore.user.department_id = data.student.department_id;
-      authStore.user.isApproved = data.student.is_approved;
-      authStore.user.isEvaluated = data.student.is_evaluated;
-      authStore.user.registered_courses = data.student.registered_courses || [];
-      authStore.user.evaluated_courses = data.student.evaluated_courses || [];
-      authStore.user.semester = data.student.semester;
-
-      console.log('User Data:', authStore.user);
-
-      if (authStore.user.isApproved === 0) {
-        toast.info('Pending Status');
-        router.push('/pending');
-      } else {
-        router.push('/dashboard');
-      }
-    }
-  } catch (error) {
-    console.error('Login error:', error);
-    toast.error('Invalid email or password');
-  }
+function login() {
+  authStore.login({ email: email.value, password: password.value });
 }
-
-onMounted(() => {});
 </script>
 
 <style>

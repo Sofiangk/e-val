@@ -11,6 +11,8 @@ import { initFlowbite } from "flowbite";
 import App from "./App.vue";
 import "./index.css";
 import router from "./routes";
+import { useAuthStore } from "./stores/AuthStore";
+import { bindAuthStore } from "./api/client";
 
 const app = createApp(App);
 const pinia = createPinia();
@@ -18,6 +20,10 @@ const pinia = createPinia();
 app.use(router);
 pinia.use(piniaPersist);
 app.use(pinia);
+
+// Give the API client access to tokens (and refresh/logout) without a
+// circular import.
+bindAuthStore(useAuthStore(pinia));
 app.use(Toast, {
   transition: "Vue-Toastification__fade",
   maxToasts: 5,

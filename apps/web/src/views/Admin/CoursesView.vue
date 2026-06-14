@@ -39,7 +39,7 @@
       v-if="showModal"
       @close="showModal = false"
       :title="'Enrolled Students'"
-      :objects="students"
+      :objects="enrolledStudents"
     />
   </div>
 </template>
@@ -50,20 +50,16 @@ import FiltersComponent from '../../components/Admin/FiltersComponent.vue';
 import ClickableTable from '../../components/Admin/ClickableTable.vue';
 import ObjectDetails from '../../components/Admin/ObjectDetails.vue';
 import Modal from '../../components/Admin/Modal.vue';
-import axios from 'axios';
-import { useAuthStore } from '../../stores/AuthStore';
-import { useToast } from 'vue-toastification';
+import { adminApi } from '../../api/admin';
 
-const toast = useToast();
-const apiUrl = import.meta.env.VITE_APP_API_URL;
-
-const authStore = useAuthStore();
 const selectedDepartment = ref('');
 const searchQuery = ref('');
 const selectedCourse = ref(null);
 const showModal = ref(false);
 
 const courses = ref([]);
+// Per-course enrolled student list isn't exposed by the API yet.
+const enrolledStudents = ref([]);
 const courseName = ref('No Course Selected');
 const instructorName = ref('N/A');
 const courseCode = ref('N/A');
@@ -74,12 +70,7 @@ const courseRemaining = ref(0);
 
 const fetchCourses = async () => {
   try {
-    const response = await axios.get(apiUrl + 'courses', {
-      headers: {
-        Authorization: `Bearer ${authStore.admin.token}`,
-      },
-    });
-    courses.value = response.data;
+    courses.value = await adminApi.courses();
   } catch (error) {
     console.error('Error fetching courses:', error);
   }
@@ -135,18 +126,6 @@ function updateCourseInfo(course) {
 
 const openModal = () => {
   showModal.value = true;
-};
-
-const exportData = async () => {
-  try {
-    await axios.get('http://127.0.0.1:8000/api/courses', {
-      headers: {
-        Authorization: `Bearer ${authStore.admin.token}`,
-      },
-    });
-  } catch (error) {
-    toast.error('Error exporting data');
-  }
 };
 
 const courseStatsCards = computed(() => [

@@ -12,6 +12,11 @@ interface ListParams {
 export class AdminService {
   constructor(private readonly prisma: PrismaService) {}
 
+  private readonly studentInclude = {
+    department: true,
+    enrollments: { include: { course: true }, orderBy: { courseId: 'asc' as const } },
+  };
+
   async listStudents({ page, perPage, approved }: ListParams) {
     const where = {
       role: ROLES.STUDENT,
@@ -20,7 +25,7 @@ export class AdminService {
     const [rows, total] = await Promise.all([
       this.prisma.user.findMany({
         where,
-        include: { department: true, _count: { select: { enrollments: true } } },
+        include: this.studentInclude,
         orderBy: { createdAt: 'desc' },
         skip: (page - 1) * perPage,
         take: perPage,
@@ -37,7 +42,7 @@ export class AdminService {
   async getUnapproved() {
     const rows = await this.prisma.user.findMany({
       where: { role: ROLES.STUDENT, isApproved: false },
-      include: { department: true, _count: { select: { enrollments: true } } },
+      include: this.studentInclude,
       orderBy: { createdAt: 'desc' },
     });
     return rows.map((u) => this.toStudentRow(u));
@@ -74,19 +79,31 @@ export class AdminService {
     email: string;
     studentId: string | null;
     semester: number | null;
+    departmentId: number | null;
     isApproved: boolean;
     department: { name: string } | null;
-    _count: { enrollments: number };
+    enrollments: Array<{ isEvaluated: boolean; course: { id: number; name: string; courseCode: string } }>;
   }) {
+    const registered_courses = u.enrollments.map((e) => ({
+      id: e.course.id,
+      name: e.course.name,
+      course_code: e.course.courseCode,
+      is_evaluated: e.isEvaluated,
+    }));
+    const evaluated = registered_courses.filter((c) => c.is_evaluated);
     return {
       id: u.id,
       name: u.name,
       email: u.email,
       student_id: u.studentId,
       semester: u.semester,
+      department_id: u.departmentId,
       is_approved: u.isApproved,
+      is_evaluated: registered_courses.length > 0 && evaluated.length === registered_courses.length,
       department_name: u.department?.name ?? null,
-      registered_courses_count: u._count.enrollments,
+      registered_courses,
+      evaluated_courses: evaluated,
+      registered_courses_count: registered_courses.length,
     };
   }
 }

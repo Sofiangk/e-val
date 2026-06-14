@@ -109,40 +109,25 @@
 </template>
 
 <script setup>
-import { onMounted, ref } from "vue";
+import { computed, onMounted } from "vue";
 import StatsCard from "../../components/Student/StatsCard.vue";
 import CourseTable from "../../components/Student/CourseTable.vue";
 import { useAuthStore } from "../../stores/AuthStore";
 
-const student = ref({});
-
 const authStore = useAuthStore();
-student.value = authStore.user;
+
 onMounted(() => {
   authStore.getUserData();
 });
-const cards = [
-  {
-    id: 1,
-    title: "Total Courses",
-    value: student.value.registered_courses.length,
-  },
-  {
-    id: 2,
-    title: "Evaluated",
-    value: student.value.evaluated_courses.length,
-  },
-  {
-    id: 3,
-    title: "Remaining",
-    value:
-      student.value.registered_courses.length -
-      student.value.evaluated_courses.length,
-  },
-  {
-    id: 4,
-    title: "Semester",
-    value: student.value.semester,
-  },
-];
+
+const cards = computed(() => {
+  const registered = authStore.user.registered_courses?.length ?? 0;
+  const evaluated = authStore.user.evaluated_courses?.length ?? 0;
+  return [
+    { id: 1, title: "Total Courses", value: registered },
+    { id: 2, title: "Evaluated", value: evaluated },
+    { id: 3, title: "Remaining", value: registered - evaluated },
+    { id: 4, title: "Semester", value: authStore.user.semester ?? "—" },
+  ];
+});
 </script>

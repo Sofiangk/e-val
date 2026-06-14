@@ -2,10 +2,10 @@ import { createRouter, createWebHistory } from 'vue-router';
 import { useAuthStore } from '../stores/AuthStore'; // Ensure the correct path
 
 // Auth views
-import LoginView from '../views/Auth/LoginView.vue';
-import RegisterView from '../views/Auth/RegisterView.vue';
-import ForgotPasswordView from '../views/Auth/ForgotPasswordView.vue';
-import ResetPasswordView from '../views/Auth/ResetPasswordView.vue';
+import LoginView from '../views/auth/LoginView.vue';
+import RegisterView from '../views/auth/RegisterView.vue';
+import ForgotPasswordView from '../views/auth/ForgotPasswordView.vue';
+import ResetPasswordView from '../views/auth/ResetPasswordView.vue';
 import AuthenticatedLayout from '../Layouts/AuthenticatedLayout.vue';
 
 // Student views
@@ -18,6 +18,7 @@ import PendingView from '../views/Student/PendingView.vue';
 import AdminDashboardView from '../views/Admin/DashboardView.vue';
 import CoursesView from '../views/Admin/CoursesView.vue';
 import StudentsView from '../views/Admin/StudentsView.vue';
+import ReportsView from '../views/Admin/ReportsView.vue';
 
 const routes = [
   {
@@ -76,6 +77,12 @@ const routes = [
         path: 'students',
         name: 'Students',
         component: StudentsView,
+        meta: { requiresAuth: true, role: 'admin' },
+      },
+      {
+        path: 'reports',
+        name: 'Reports',
+        component: ReportsView,
         meta: { requiresAuth: true, role: 'admin' },
       },
     ],

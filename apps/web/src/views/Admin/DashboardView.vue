@@ -131,49 +131,31 @@
 </template>
 
 <script setup>
-import axios from 'axios';
 import { onMounted, computed, ref } from 'vue';
-import { useAuthStore } from '../../stores/AuthStore';
 import { useToast } from 'vue-toastification';
 import StatsCard from '../../components/Student/StatsCard.vue';
 import GeneralTable from '../../components/Admin/GeneralTable.vue';
 import RequestTable from '../../components/Admin/RequestsTable.vue';
+import { adminApi } from '../../api/admin';
+
+const toast = useToast();
 
 const totalStudents = ref(0);
 const evaluatedStudents = ref(0);
 const remainingStudents = ref(0);
-
 const totalCourses = ref(0);
 const evaluatedCourses = ref(0);
-const remainingCourses = ref(0);
-
-const toast = useToast();
-const authStore = useAuthStore();
 
 const requests = ref([]);
-
 const courses = ref([]);
-
 const students = ref([]);
 
 async function getStudents() {
-  const authStore = useAuthStore();
-  const apiUrl = import.meta.env.VITE_APP_API_URL;
   try {
-    const response = await axios.get(apiUrl + 'students', {
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: 'Bearer ' + authStore.admin.token,
-      },
-    });
-    students.value = response.data.data.filter(
-      (student) => student.is_approved === 1
-    );
-    totalStudents.value = response.data.total_students;
-    evaluatedStudents.value = students.value.filter(
-      (student) => student.is_evaluated === 1
-    ).length;
-    console.log(evaluatedStudents.value);
+    const res = await adminApi.students({ approved: true, per_page: 100 });
+    students.value = res.data;
+    totalStudents.value = res.meta?.total ?? res.data.length;
+    evaluatedStudents.value = students.value.filter((s) => s.is_evaluated).length;
     remainingStudents.value = totalStudents.value - evaluatedStudents.value;
   } catch (error) {
     console.error(error);
@@ -181,69 +163,30 @@ async function getStudents() {
 }
 
 async function getCourses() {
-  const authStore = useAuthStore();
-  const apiUrl = import.meta.env.VITE_APP_API_URL;
   try {
-    const response = await axios.get(apiUrl + 'courses', {
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: 'Bearer ' + authStore.admin.token,
-      },
-    });
-    courses.value = response.data;
+    courses.value = await adminApi.courses();
     totalCourses.value = courses.value.length;
-    evaluatedCourses.value = courses.value.filter(
-      (course) => course.is_evaluated === 1
-    ).length;
-    remainingCourses.value = totalCourses.value - evaluatedCourses.value;
+    evaluatedCourses.value = courses.value.filter((c) => c.evaluated_students > 0).length;
   } catch (error) {
     console.error(error);
   }
 }
 
 async function getRequests() {
-  const authStore = useAuthStore();
-  const apiUrl = import.meta.env.VITE_APP_API_URL;
   try {
-    const response = await axios.get(apiUrl + 'students/unapproved', {
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: 'Bearer ' + authStore.admin.token,
-      },
-    });
-    requests.value = response.data;
+    requests.value = await adminApi.unapproved();
   } catch (error) {
     console.error(error);
   }
 }
 
 async function acceptStudent(index) {
-  const apiUrl = import.meta.env.VITE_APP_API_URL;
-  const token = authStore.admin?.token;
-
-  if (!token) {
-    toast.error('User is not authenticated');
-    return;
-  }
-
+  const student = requests.value[index];
   try {
-    const response = await axios.post(
-      `${apiUrl}approve-user/${requests.value[index].id}`,
-      {},
-      {
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-      }
-    );
-    toast.success(
-      `Accepted student with ID ${requests.value[index].student_id}`
-    );
-    getStudents();
-    console.log(response.data);
-    // Optionally, remove the accepted request from the list
+    await adminApi.approve(student.id);
+    toast.success(`Accepted student ${student.name ?? student.student_id}`);
     requests.value.splice(index, 1);
+    getStudents();
   } catch (error) {
     toast.error('Failed to accept student');
     console.error(error);
@@ -251,27 +194,10 @@ async function acceptStudent(index) {
 }
 
 async function rejectStudent(index) {
-  const apiUrl = import.meta.env.VITE_APP_API_URL;
-  const token = authStore.admin?.token;
-
-  if (!token) {
-    toast.error('User is not authenticated');
-    return;
-  }
-
+  const student = requests.value[index];
   try {
-    const response = await axios.delete(
-      `${apiUrl}students/${requests.value[index].id}`,
-      {
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-      }
-    );
-    toast.error(`Rejected student with ID ${requests.value[index].student_id}`);
-    console.log(response.data);
-    // Optionally, remove the rejected request from the list
+    await adminApi.deleteStudent(student.id);
+    toast.error(`Rejected student ${student.name ?? student.student_id}`);
     requests.value.splice(index, 1);
   } catch (error) {
     toast.error('Failed to reject student');
@@ -280,45 +206,11 @@ async function rejectStudent(index) {
 }
 
 const cards = computed(() => [
-  {
-    id: 1,
-    title: 'Total Courses',
-    value: totalCourses.value,
-  },
-  {
-    id: 2,
-    title: 'Evaluated',
-    value: evaluatedCourses.value,
-  },
-  {
-    id: 3,
-    title: 'Total Students',
-    value: totalStudents.value,
-  },
-  {
-    id: 4,
-    title: 'Remaining',
-    value: remainingStudents.value,
-  },
+  { id: 1, title: 'Total Courses', value: totalCourses.value },
+  { id: 2, title: 'Courses Evaluated', value: evaluatedCourses.value },
+  { id: 3, title: 'Total Students', value: totalStudents.value },
+  { id: 4, title: 'Pending Requests', value: requests.value.length },
 ]);
-
-// Function to get the evaluated count for each course
-function getEvaluatedCount(courseId) {
-  return students.value.reduce((count, student) => {
-    if (
-      student.evaluated_courses &&
-      student.evaluated_courses.includes(courseId)
-    ) {
-      count++;
-    }
-    return count;
-  }, 0);
-}
-
-// Updating the courses evaluated_students property
-courses.value.forEach((course) => {
-  course.evaluated_students = getEvaluatedCount(course.id);
-});
 
 onMounted(() => {
   getRequests();

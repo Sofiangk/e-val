@@ -42,9 +42,9 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { computed } from 'vue';
 import { useAuthStore } from '../../stores/AuthStore';
 
 const authStore = useAuthStore();
-const courses = ref(authStore.user.registered_courses);
+const courses = computed(() => authStore.user.registered_courses ?? []);
 </script>

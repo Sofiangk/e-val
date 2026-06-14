@@ -241,6 +241,26 @@
               <span class="ml-3">Students</span>
             </router-link>
           </li>
+          <li>
+            <router-link
+              to="/admin/reports"
+              class="flex items-center w-full p-3 px-6 text-base font-medium text-mainBlack transition duration-75 hover:bg-mainWhite rounded-md group"
+            >
+              <svg
+                aria-hidden="true"
+                class="flex-shrink-0 w-6 h-6 transition duration-75"
+                fill="currentColor"
+                viewBox="0 0 24 24"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  fill="currentColor"
+                  d="M5 3a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2zm3 14H6v-5h2zm4 0h-2V7h2zm4 0h-2v-8h2z"
+                />
+              </svg>
+              <span class="ml-3">Reports</span>
+            </router-link>
+          </li>
         </ul>
 
         <!-- Sidebar footer -->
@@ -281,18 +301,19 @@
 </template>
 
 <script setup>
-import axios from 'axios';
 import { initFlowbite } from 'flowbite';
-import { onMounted } from 'vue';
+import { computed, onMounted } from 'vue';
+import { useRouter } from 'vue-router';
 import { useAuthStore } from '../stores/AuthStore';
+
 const authStore = useAuthStore();
+const router = useRouter();
 
-const user = authStore.user;
-
-const userName =
+const userName = computed(() =>
   authStore.role === 'student'
-    ? user.name
-    : authStore.admin.email.split('@')[0];
+    ? authStore.user.name
+    : authStore.admin.email?.split('@')[0] ?? 'Admin',
+);
 
 async function logout() {
   await authStore.logout();
@@ -300,6 +321,8 @@ async function logout() {
 
 onMounted(() => {
   initFlowbite();
+  // Re-init Flowbite components (dropdowns, drawers) after each navigation.
+  router.afterEach(() => setTimeout(initFlowbite, 0));
 });
 </script>
 

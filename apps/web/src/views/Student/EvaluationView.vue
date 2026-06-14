@@ -135,14 +135,11 @@ async function submitForm() {
     return;
   }
 
-  try {
-    await evalStore.submitEvaluation(selectedCourseId.value);
-    resetForm();
-    router.push('/success');
-  } catch (error) {
-    console.error('Error submitting evaluation:', error);
-    toast.error('There was an error submitting your evaluation.');
-  }
+  const ok = await evalStore.submitEvaluation(selectedCourseId.value);
+  if (!ok) return;
+  await authStore.getUserData();
+  resetForm();
+  router.push('/success');
 }
 
 onMounted(() => {
